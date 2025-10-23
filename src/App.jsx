@@ -1,5 +1,4 @@
 import React, { useState, useMemo } from 'react';
-import { Filter, Calendar, Download, Plus, X, Search, ChevronDown, ChevronUp, BarChart3, TrendingUp, PieChart } from 'lucide-react';
 import { LineChart, Line, BarChart, Bar, PieChart as RePieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area, AreaChart } from 'recharts';
 
 const RiskAssessmentTracker = () => {
@@ -53,6 +52,7 @@ const RiskAssessmentTracker = () => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
+  const [editingIndex, setEditingIndex] = useState(null);
 
   const [newAssessment, setNewAssessment] = useState({
     id: '',
@@ -173,6 +173,56 @@ const RiskAssessmentTracker = () => {
     }
   };
 
+  const handleEditAssessment = (index) => {
+    setEditingIndex(index);
+    setNewAssessment({ ...assessments[index] });
+    setShowAddForm(true);
+  };
+
+  const handleUpdateAssessment = () => {
+    if (newAssessment.id && newAssessment.entity && editingIndex !== null) {
+      const updatedAssessments = [...assessments];
+      updatedAssessments[editingIndex] = { ...newAssessment };
+      setAssessments(updatedAssessments);
+      setNewAssessment({
+        id: '',
+        auditType: '',
+        entity: '',
+        auditStartDate: '',
+        riskAssessmentDate: '',
+        isr: '',
+        rcr: '',
+        ora: '',
+        notes: ''
+      });
+      setEditingIndex(null);
+      setShowAddForm(false);
+    }
+  };
+
+  const handleDeleteAssessment = (index) => {
+    if (window.confirm('Are you sure you want to delete this assessment?')) {
+      const updatedAssessments = assessments.filter((_, i) => i !== index);
+      setAssessments(updatedAssessments);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setNewAssessment({
+      id: '',
+      auditType: '',
+      entity: '',
+      auditStartDate: '',
+      riskAssessmentDate: '',
+      isr: '',
+      rcr: '',
+      ora: '',
+      notes: ''
+    });
+    setEditingIndex(null);
+    setShowAddForm(false);
+  };
+
   const exportToCSV = () => {
     const headers = ['Audit ID', 'Audit Type', 'Entity/Vendor/Process', 'Audit Start Date', 'Risk Assessment Date', 'ISR', 'RCR', 'ORA', 'Key Drivers/Notes'];
     const csvContent = [
@@ -278,48 +328,44 @@ const RiskAssessmentTracker = () => {
 
   const SortIcon = ({ columnKey }) => {
     if (sortConfig.key !== columnKey) return null;
-    return sortConfig.direction === 'asc' ? <ChevronUp className="w-4 h-4 inline ml-1" /> : <ChevronDown className="w-4 h-4 inline ml-1" />;
+    return <span className="ml-1">{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>;
   };
 
   return (
-    <div className="w-full h-screen bg-gray-50 p-6 overflow-auto">
+    <div className="w-full min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
           <div className="flex justify-between items-center mb-4">
             <h1 className="text-3xl font-bold text-gray-900">Risk Assessment Tracker</h1>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               <button
                 onClick={() => setShowAnalytics(!showAnalytics)}
-                className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm"
               >
-                <BarChart3 className="w-4 h-4" />
-                {showAnalytics ? 'Hide Analytics' : 'Show Analytics'}
+                {showAnalytics ? '📊 Hide Analytics' : '📊 Show Analytics'}
               </button>
               <button
                 onClick={() => setShowFilters(!showFilters)}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm"
               >
-                <Filter className="w-4 h-4" />
-                {showFilters ? 'Hide Filters' : 'Show Filters'}
+                {showFilters ? '🔍 Hide Filters' : '🔍 Show Filters'}
               </button>
               <button
                 onClick={() => setShowAddForm(!showAddForm)}
-                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm"
               >
-                <Plus className="w-4 h-4" />
-                Add New
+                {showAddForm ? '✖ Cancel' : '➕ Add New'}
               </button>
               <button
                 onClick={exportToCSV}
-                className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition"
+                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition text-sm"
               >
-                <Download className="w-4 h-4" />
-                Export
+                💾 Export CSV
               </button>
             </div>
           </div>
           
-          <div className="grid grid-cols-4 gap-4 mt-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
             <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
               <div className="text-sm text-blue-600 font-medium">Total Assessments</div>
               <div className="text-2xl font-bold text-blue-900">{sortedAssessments.length}</div>
@@ -342,10 +388,7 @@ const RiskAssessmentTracker = () => {
         {showAnalytics && (
           <div className="space-y-6 mb-6">
             <div className="bg-white rounded-lg shadow-sm p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-purple-600" />
-                Cumulative Risk Trend Over Time
-              </h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">📈 Cumulative Risk Trend Over Time</h2>
               <ResponsiveContainer width="100%" height={300}>
                 <AreaChart data={analyticsData.cumulativeTrend}>
                   <CartesianGrid strokeDasharray="3 3" />
@@ -362,10 +405,7 @@ const RiskAssessmentTracker = () => {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="bg-white rounded-lg shadow-sm p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                  <BarChart3 className="w-5 h-5 text-purple-600" />
-                  Risk Distribution by Audit Type
-                </h2>
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">📊 Risk Distribution by Audit Type</h2>
                 <ResponsiveContainer width="100%" height={300}>
                   <BarChart data={analyticsData.typeData}>
                     <CartesianGrid strokeDasharray="3 3" />
@@ -381,10 +421,7 @@ const RiskAssessmentTracker = () => {
               </div>
 
               <div className="bg-white rounded-lg shadow-sm p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                  <PieChart className="w-5 h-5 text-purple-600" />
-                  Current Risk Distribution (ORA)
-                </h2>
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">🥧 Current Risk Distribution (ORA)</h2>
                 <ResponsiveContainer width="100%" height={300}>
                   <RePieChart>
                     <Pie
@@ -407,10 +444,7 @@ const RiskAssessmentTracker = () => {
               </div>
 
               <div className="bg-white rounded-lg shadow-sm p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-purple-600" />
-                  Risk Level Changes (ISR → ORA)
-                </h2>
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">📈 Risk Level Changes (ISR → ORA)</h2>
                 <ResponsiveContainer width="100%" height={300}>
                   <RePieChart>
                     <Pie
@@ -433,10 +467,7 @@ const RiskAssessmentTracker = () => {
               </div>
 
               <div className="bg-white rounded-lg shadow-sm p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                  <BarChart3 className="w-5 h-5 text-purple-600" />
-                  ISR vs ORA Comparison by Entity
-                </h2>
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">📊 ISR vs ORA Comparison by Entity</h2>
                 <ResponsiveContainer width="100%" height={300}>
                   <BarChart data={analyticsData.isrOraComparison}>
                     <CartesianGrid strokeDasharray="3 3" />
@@ -454,7 +485,7 @@ const RiskAssessmentTracker = () => {
             </div>
 
             <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg shadow-sm p-6 border border-purple-200">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Key Insights</h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">💡 Key Insights</h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-white p-4 rounded-lg border border-purple-100">
                   <div className="text-sm text-gray-600 mb-1">High Risk Assessments</div>
@@ -462,7 +493,7 @@ const RiskAssessmentTracker = () => {
                     {sortedAssessments.filter(a => a.ora === 'High').length}
                   </div>
                   <div className="text-xs text-gray-500 mt-1">
-                    {((sortedAssessments.filter(a => a.ora === 'High').length / sortedAssessments.length) * 100).toFixed(1)}% of total
+                    {sortedAssessments.length > 0 ? ((sortedAssessments.filter(a => a.ora === 'High').length / sortedAssessments.length) * 100).toFixed(1) : 0}% of total
                   </div>
                 </div>
                 <div className="bg-white p-4 rounded-lg border border-purple-100">
@@ -476,7 +507,7 @@ const RiskAssessmentTracker = () => {
                 </div>
                 <div className="bg-white p-4 rounded-lg border border-purple-100">
                   <div className="text-sm text-gray-600 mb-1">Most Common Audit Type</div>
-                  <div className="text-lg font-bold text-purple-600">
+                  <div className="text-sm font-bold text-purple-600">
                     {analyticsData.typeData.length > 0 
                       ? analyticsData.typeData.reduce((prev, curr) => 
                           (curr.High + curr.Medium + curr.Low) > (prev.High + prev.Medium + prev.Low) ? curr : prev
@@ -495,7 +526,7 @@ const RiskAssessmentTracker = () => {
         {showFilters && (
           <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">Filters</h2>
+              <h2 className="text-lg font-semibold text-gray-900">🔍 Filters</h2>
               <button
                 onClick={clearFilters}
                 className="text-sm text-blue-600 hover:text-blue-800 font-medium"
@@ -507,16 +538,13 @@ const RiskAssessmentTracker = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div className="col-span-full">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-2.5 w-5 h-5 text-gray-400" />
-                  <input
-                    type="text"
-                    value={filters.searchText}
-                    onChange={(e) => handleFilterChange('searchText', e.target.value)}
-                    placeholder="Search by ID, entity, or notes..."
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
+                <input
+                  type="text"
+                  value={filters.searchText}
+                  onChange={(e) => handleFilterChange('searchText', e.target.value)}
+                  placeholder="Search by ID, entity, or notes..."
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
               </div>
 
               <div>
@@ -609,9 +637,11 @@ const RiskAssessmentTracker = () => {
         {showAddForm && (
           <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">Add New Assessment</h2>
-              <button onClick={() => setShowAddForm(false)} className="text-gray-400 hover:text-gray-600">
-                <X className="w-5 h-5" />
+              <h2 className="text-lg font-semibold text-gray-900">
+                {editingIndex !== null ? '✏️ Edit Assessment' : '➕ Add New Assessment'}
+              </h2>
+              <button onClick={handleCancelEdit} className="text-gray-400 hover:text-gray-600 text-2xl">
+                ✖
               </button>
             </div>
             
@@ -710,16 +740,16 @@ const RiskAssessmentTracker = () => {
             
             <div className="flex justify-end gap-2 mt-4">
               <button
-                onClick={() => setShowAddForm(false)}
+                onClick={handleCancelEdit}
                 className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
               >
                 Cancel
               </button>
               <button
-                onClick={handleAddAssessment}
+                onClick={editingIndex !== null ? handleUpdateAssessment : handleAddAssessment}
                 className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
               >
-                Add Assessment
+                {editingIndex !== null ? 'Update Assessment' : 'Add Assessment'}
               </button>
             </div>
           </div>
@@ -749,34 +779,56 @@ const RiskAssessmentTracker = () => {
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">RCR</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">ORA</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Notes</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {sortedAssessments.map((assessment, idx) => (
-                  <tr key={idx} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-sm font-medium text-gray-900">{assessment.id}</td>
-                    <td className="px-4 py-3 text-sm text-gray-600">{assessment.auditType}</td>
-                    <td className="px-4 py-3 text-sm text-gray-900">{assessment.entity}</td>
-                    <td className="px-4 py-3 text-sm text-gray-600">{formatDate(assessment.auditStartDate)}</td>
-                    <td className="px-4 py-3 text-sm text-gray-600">{formatDate(assessment.riskAssessmentDate)}</td>
-                    <td className="px-4 py-3">
-                      <span className={`px-2 py-1 text-xs font-medium rounded border ${getRiskColor(assessment.isr)}`}>
-                        {assessment.isr}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`px-2 py-1 text-xs font-medium rounded border ${getRiskColor(assessment.rcr)}`}>
-                        {assessment.rcr}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`px-2 py-1 text-xs font-medium rounded border ${getRiskColor(assessment.ora)}`}>
-                        {assessment.ora}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-600 max-w-xs truncate">{assessment.notes}</td>
-                  </tr>
-                ))}
+                {sortedAssessments.map((assessment, idx) => {
+                  const originalIndex = assessments.findIndex(a => a === assessment);
+                  return (
+                    <tr key={idx} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 text-sm font-medium text-gray-900">{assessment.id}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600">{assessment.auditType}</td>
+                      <td className="px-4 py-3 text-sm text-gray-900">{assessment.entity}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600">{formatDate(assessment.auditStartDate)}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600">{formatDate(assessment.riskAssessmentDate)}</td>
+                      <td className="px-4 py-3">
+                        <span className={`px-2 py-1 text-xs font-medium rounded border ${getRiskColor(assessment.isr)}`}>
+                          {assessment.isr}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`px-2 py-1 text-xs font-medium rounded border ${getRiskColor(assessment.rcr)}`}>
+                          {assessment.rcr}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`px-2 py-1 text-xs font-medium rounded border ${getRiskColor(assessment.ora)}`}>
+                          {assessment.ora}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-600 max-w-xs truncate">{assessment.notes}</td>
+                      <td className="px-4 py-3 text-sm">
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleEditAssessment(originalIndex)}
+                            className="px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 text-xs font-medium"
+                            title="Edit"
+                          >
+                            ✏️ Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeleteAssessment(originalIndex)}
+                            className="px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 text-xs font-medium"
+                            title="Delete"
+                          >
+                            🗑️ Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
             
